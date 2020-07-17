@@ -11368,6 +11368,45 @@ sym_all_symbols(VALUE _)
  *
  */
 
+static VALUE
+str_palindrome_p_efficient(VALUE self)
+{
+    const char *pat = "[^A-z0-9\\p{hiragana}\\p{katakana}]";
+    VALUE argv[2] = {rb_reg_regcomp(rb_utf8_str_new_cstr(pat)), rb_str_new_cstr("")};
+    VALUE filtered_str = rb_str_downcase(0, NULL, str_gsub(2, argv, self, FALSE));
+    if(rb_str_empty(filtered_str)){ 
+        return Qfalse;
+    }
+    
+    char *ptr = rb_str_to_cstr(filtered_str);
+    int len = strlen(ptr);
+    char *r_ptr, *l_ptr;
+    r_ptr = ptr;
+    l_ptr = ptr + len - 1; 
+    ptr += len; // pointer of last of string
+
+    while(r_ptr != ptr){
+        if(*r_ptr != *l_ptr){
+            return Qfalse;
+        }
+
+        l_ptr--;
+        r_ptr++;
+    }
+
+    return Qtrue;
+}
+
+static VALUE
+str_palindrome_p(VALUE self)
+{
+    const char *pat = "[^A-z0-9\\p{hiragana}\\p{katakana}]";
+    VALUE argv[2] = {rb_reg_regcomp(rb_utf8_str_new_cstr(pat)), rb_str_new_cstr("")};
+    VALUE filtered_str = rb_str_downcase(0, NULL, str_gsub(2, argv, self, FALSE));
+    return rb_str_empty(filtered_str) ? Qfalse : 
+           rb_str_equal(filtered_str, rb_str_reverse(filtered_str));
+}
+
 void
 Init_String(void)
 {
@@ -11420,6 +11459,9 @@ Init_String(void)
     rb_define_method(rb_cString, "freeze", rb_str_freeze, 0);
     rb_define_method(rb_cString, "+@", str_uplus, 0);
     rb_define_method(rb_cString, "-@", str_uminus, 0);
+
+    rb_define_method(rb_cString, "palindrome?", str_palindrome_p, 0);
+    rb_define_method(rb_cString, "palindrome_efficient?", str_palindrome_p_efficient, 0);
 
     rb_define_method(rb_cString, "to_i", rb_str_to_i, -1);
     rb_define_method(rb_cString, "to_f", rb_str_to_f, 0);
